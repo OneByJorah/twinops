@@ -1,0 +1,90 @@
+name: twinops
+
+services:
+  # Uptime monitoring (uptime-kuma): status pages, probes, alerting
+  kuma:
+    image: louislam/uptime-kuma:1
+    container_name: twinops-kuma
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3001"
+    volumes:
+      - kuma_data:/app/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:3001/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - internal
+
+  # Web analytics + survey + short-link (tianji) with its Postgres store
+  tianji:
+    image: moonrailgun/tianji:latest
+    container_name: twinops-tianji
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:12345:12345"
+    environment:
+      DATABASE_URL: postgresql://tianji:${POSTGRES_PASSWORD:-twinops-demo}@tianji-postgres:5432/tianji
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+      ALLOW_REGISTER: ${ALLOW_REGISTER:-true}
+      ALLOW_OPENAPI: "true"
+      PUBLIC_URL: ${PUBLIC_URL:-}
+    depends_on:
+      tianji-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:12345/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 40s
+    networks:
+      - internal
+
+  tianji-postgres:
+    image: postgres:15.4-alpine
+    container_name: twinops-tianji-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: tianji
+      POSTGRES_USER: tianji
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-twinops-demo}
+    volumes:
+      - tianji_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - internal
+
+  # Landing portal: one page linking both apps with live status
+  portal:
+    build: ./portal
+    image: ghcr.io/onebyjorah/twinops:latest
+    container_name: twinops-portal
+    restart: unless-stopped
+    environment:
+      KUMA_URL: ${KUMA_URL:-http://127.0.0.1:3001}
+      TIANJI_URL: ${TIANJI_URL:-http://127.0.0.1:12345}
+      KUMA_INTERNAL: http://kuma:3001
+      TIANJI_INTERNAL: http://tianji:12345
+      PORTAL_PORT: 8080
+    ports:
+      - "127.0.0.1:8080:8080"
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: twinops_internal
+
+volumes:
+  kuma_data:
+    name: twinops_kuma_data
+  tianji_db:
+    name: twinops_tianji_db
