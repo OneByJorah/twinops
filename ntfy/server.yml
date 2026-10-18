@@ -1,0 +1,8 @@
+# ntfy server config for the twinops stack (local, unauthenticated on localhost;
+# put auth + TLS on your reverse proxy if you expose it).
+base-url: "http://127.0.0.1:9090"
+cache-file: "/var/cache/ntfy/cache.db"
+cache-duration: "12h"
+attachment-cache-dir: "/var/cache/ntfy/attachments"
+enable-login: false
+enable-signup: false

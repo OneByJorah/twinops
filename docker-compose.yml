@@ -62,6 +62,26 @@ services:
     networks:
       - internal
 
+  # Push notifications: self-hosted ntfy (Uptime Kuma -> ntfy -> phone)
+  ntfy:
+    image: binwiederhier/ntfy:v2.32.0
+    container_name: twinops-ntfy
+    restart: unless-stopped
+    command: serve
+    ports:
+      - "127.0.0.1:9090:80"
+    volumes:
+      - ./ntfy/server.yml:/etc/ntfy/server.yml:ro
+      - ntfy_cache:/var/cache/ntfy
+    healthcheck:
+      test: ["CMD-SHELL", "wget --spider -q http://127.0.0.1:80/v1/health || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+
   # Landing portal: one page linking both apps with live status
   portal:
     build: ./portal
@@ -73,6 +93,8 @@ services:
       TIANJI_URL: ${TIANJI_URL:-http://127.0.0.1:12345}
       KUMA_INTERNAL: http://kuma:3001
       TIANJI_INTERNAL: http://tianji:12345
+      NTFY_INTERNAL: http://ntfy:80
+      NTFY_URL: ${NTFY_URL:-http://127.0.0.1:9090}
       PORTAL_PORT: 8080
     ports:
       - "127.0.0.1:8080:8080"
@@ -84,6 +106,8 @@ networks:
     name: twinops_internal
 
 volumes:
+  ntfy_cache:
+    name: twinops_ntfy_cache
   kuma_data:
     name: twinops_kuma_data
   tianji_db:

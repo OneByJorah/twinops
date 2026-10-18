@@ -9,6 +9,8 @@ KUMA_URL = os.environ.get("KUMA_URL", "http://127.0.0.1:3001")
 KUMA_INTERNAL = os.environ.get("KUMA_INTERNAL", "http://kuma:3001")
 TIANJI_URL = os.environ.get("TIANJI_URL", "http://127.0.0.1:12345")
 TIANJI_INTERNAL = os.environ.get("TIANJI_INTERNAL", "http://tianji:12345")
+NTFY_INTERNAL = os.environ.get("NTFY_INTERNAL", "http://ntfy:80")
+NTFY_URL = os.environ.get("NTFY_URL", "http://127.0.0.1:9090")
 ROOT = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -37,6 +39,7 @@ class Handler(BaseHTTPRequestHandler):
             payload = json.dumps({
                 "kuma": probe(KUMA_INTERNAL),
                 "tianji": probe(TIANJI_INTERNAL),
+                "ntfy": probe(NTFY_INTERNAL),
             }).encode()
             return self._send(200, "application/json", payload)
         if path in ("/", ""):

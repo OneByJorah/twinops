@@ -21,6 +21,7 @@ Brings together two of the best self-hosted tools — [Uptime Kuma](https://gith
 | **Uptime Kuma** | `louislam/uptime-kuma:1` | Uptime probes (HTTP/TCP/DNS/push), status pages, alerting | `3001` |
 | **Tianji** | `moonrailgun/tianji` | Privacy-friendly web analytics, surveys, short links, server status | `12345` |
 | **Tianji Postgres** | `postgres:15.4-alpine` | Tianji's data store | internal |
+| **ntfy** | `binwiederhier/ntfy` | Self-hosted push notifications (Uptime Kuma → ntfy → phone) | `9090` |
 | **Portal** | built from `portal/` | Landing page with live service status | `8080` |
 
 ## How The Apps Were Analyzed
@@ -48,6 +49,20 @@ First-run setup:
 
 1. **Uptime Kuma** — `http://127.0.0.1:3001` → create the admin account → add monitors.
 2. **Tianji** — `http://127.0.0.1:12345` → register the first account (becomes admin) → create a website and paste its tracking script into the sites you want measured.
+
+## Push Notifications
+
+The stack ships its own [ntfy](https://ntfy.sh) server, so outages reach your
+phone with zero third-party accounts:
+
+1. Install the ntfy app (iOS/Android) and subscribe to an **unguessable topic** (e.g. `twinops-a7f2c9d41b8e`).
+1. In Uptime Kuma: **Settings > Notifications > Setup Notification** -> type **ntfy** -> server URL `http://127.0.0.1:9090` (the bundled server) -> topic as above -> priority High/Max -> press **Test**.
+1. Attach the notification to your monitors (tick it in each monitor's Notifications list).
+
+For alerts that pierce iPhone Silent mode, [KumaAlert](https://kumaalert.app) holds Apple's
+Critical Alerts entitlement: add your server in the KumaAlert app, and it generates an
+outbound webhook - configure that webhook URL as a **Webhook** notification in Uptime Kuma.
+The webhook is outbound-only, so the stack stays unreachable from the internet.
 
 ## Remote Access
 
